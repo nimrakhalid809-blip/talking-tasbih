@@ -1,52 +1,22 @@
 name: talking_tasbih
-description: "Talking Tasbih Counter - Accessible Spiritual Companion for blind, visually impaired, and accessibility-focused Muslim users."
+description: A Flutter application for Tasbih with text-to-speech functionality.
 publish_to: 'none'
+
 version: 1.0.0+1
 
 environment:
-  sdk: '>=3.2.0 <4.0.0'
+  sdk: '>=2.18.0 <3.0.0'
 
 dependencies:
   flutter:
     sdk: flutter
-
-  # State Management
-  flutter_riverpod: ^2.4.9
-
-  # Local Storage
-  hive: ^2.2.3
-  hive_flutter: ^1.1.0
-  shared_preferences: ^2.2.2
-  path_provider: ^2.1.2
-
-  # UI Components
-  cupertino_icons: ^1.0.6
-
-  # Services
-  flutter_tts: ^3.8.5
-  vibration: ^1.8.4
-  geolocator: ^11.0.0
-  flutter_compass: ^0.8.0
-  permission_handler: ^11.3.0
-
-  # Utilities
-  equatable: ^2.0.5
-  intl: ^0.19.0
-  csv: ^6.0.0
-  share_plus: ^7.2.2
-  url_launcher: ^6.3.0
-  package_info_plus: ^8.0.0
+  cupertino_icons: ^1.0.2
+  flutter_tts: ^0.14.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^4.0.0
-  hive_generator: ^2.0.1
-  build_runner: ^2.4.9
+  flutter_lints: ^2.0.0
 
 flutter:
   uses-material-design: true
-  generate: true
-
-  assets:
-    - assets/
