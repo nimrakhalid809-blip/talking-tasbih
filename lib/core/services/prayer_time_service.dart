@@ -258,7 +258,6 @@ class PrayerTimeService {
 
     final a = math.atan(1 / (asrFactor + math.tan(latRad - declRad).abs()));
     final sinA = math.sin(a);
-    final cosA = math.cos(a);
 
     final numerator = -sinA - math.sin(latRad) * math.sin(declRad);
     final denominator = math.cos(latRad) * math.cos(declRad);
