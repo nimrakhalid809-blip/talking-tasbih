@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../models/settings_model.dart';
+import 'package:flutter/services.dart';
 
 class AccessibleButton extends StatelessWidget {
   final String label;
@@ -426,7 +426,7 @@ class AccessibleDropdownField<T extends Enum> extends StatelessWidget {
   }
 }
 
-class ScreenReaderAnnouncer extends WidgetLocalizations {
+class ScreenReaderAnnouncer {
   const ScreenReaderAnnouncer();
 
   static void announce(BuildContext context, String message) {
