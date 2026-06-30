@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/models/models.dart';
 import '../../../core/providers/providers.dart';
@@ -14,7 +13,6 @@ class CounterScreen extends ConsumerStatefulWidget {
 }
 
 class _CounterScreenState extends ConsumerState<CounterScreen> with WidgetsBindingObserver {
-  final _semanticsNode = SemanticsNode();
   Timer? _targetAnnouncementTimer;
   bool _targetAnnounced = false;
 
@@ -500,306 +498,144 @@ class _CounterScreenState extends ConsumerState<CounterScreen> with WidgetsBindi
       ],
     );
   }
-}
 
-class _ZikrSelectionSheet extends ConsumerWidget {
-  final ScrollController? scrollController;
-  final ZikrModel? selectedZikr;
+  Widget _buildSelectedZikrCard(ZikrModel? zikr) {
+    return AccessibleCard(
+      label: 'Current Zikr',
+      hint: 'Double tap to change zikr',
+      value: zikr?.displayName ?? 'None selected',
+      onTap: _openZikrSelector,
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      leading: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.primaryContainer,
+          shape: BoxShape.circle,
+        ),
+        child: Icon(
+          Icons.menu_book,
+          color: Theme.of(context).colorScheme.primary,
+        ),
+      ),
+      trailing: const Icon(Icons.chevron_right),
+    );
+  }
 
-  const _ZikrSelectionSheet({
-    this.scrollController,
-    this.selectedZikr,
-  });
+  Widget _buildCountDisplay(CounterState state, SettingsModel settings) {
+    final textStyle = TextStyle(
+      fontSize: settings.extraLargeText ? 120 : 96,
+      fontWeight: FontWeight.bold,
+      color: Theme.of(context).colorScheme.onSurface,
+    );
 
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final zikrs = ref.watch(zikrsProvider);
-    final settings = ref.watch(settingsProvider);
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Select Zikr',
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-              IconButton(
-                onPressed: () => Navigator.pop(context),
-                icon: const Icon(Icons.close),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Tap to select, long press to manage',
-            style: Theme.of(context).textTheme.bodyMedium,
-          ),
-          const Divider(),
-          Expanded(
-            child: ListView.builder(
-              controller: scrollController,
-              itemCount: zikrs.length + 1,
-              itemBuilder: (context, index) {
-                if (index == zikrs.length) {
-                  return Semantics(
-                    label: 'Add new custom zikr',
-                    hint: 'Double tap to create a new custom zikr',
-                    button: true,
-                    child: ListTile(
-                      leading: const Icon(Icons.add_circle_outline),
-                      title: const Text('Add Custom Zikr'),
-                      onTap: () async {
-                        final created = await _showAddZikrDialog(context, ref, settings);
-                        if (created == true && context.mounted) {
-                          Navigator.pop(context);
-                        }
-                      },
-                    ),
-                  );
-                }
-
-                final zikr = zikrs[index];
-                final isSelected = zikr.id == selectedZikr?.id;
-
-                return Semantics(
-                  label: zikr.displayName,
-                  value: isSelected ? 'Selected' : null,
-                  hint: 'Double tap to select',
-                  selected: isSelected,
-                  button: true,
-                  child: ListTile(
-                    leading: Icon(
-                      zikr.isFavorite ? Icons.star : Icons.star_border,
-                      color: zikr.isFavorite
-                          ? Theme.of(context).colorScheme.secondary
-                          : null,
-                    ),
-                    title: Text(
-                      zikr.displayName,
-                      style: TextStyle(
-                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                      ),
-                    ),
-                    subtitle: zikr.name != zikr.displayName
-                        ? Text(zikr.name, textDirection: TextDirection.rtl)
-                        : null,
-                    trailing: isSelected
-                        ? Icon(Icons.check_circle, color: Theme.of(context).colorScheme.primary)
-                        : null,
-                    selected: isSelected,
-                    onTap: () => Navigator.pop(context, zikr),
-                    onLongPress: () async {
-                      if (!zikr.isDefault) {
-                        final action = await _showZikrOptionsDialog(context, zikr);
-                        if (action == 'edit') {
-                          await _showEditZikrDialog(context, ref, zikr, settings);
-                        } else if (action == 'delete') {
-                          final confirmed = await _showDeleteConfirmDialog(context, zikr);
-                          if (confirmed == true) {
-                            ref.read(zikrsProvider.notifier).deleteZikr(zikr.id);
-                          }
-                        }
-                      }
-                    },
-                  ),
-                );
-              },
-            ),
-          ),
-        ],
+    return Semantics(
+      label: 'Total count: ${state.count}',
+      hint: state.targetReached ? 'Target completed!' : 'Tap below to count',
+      liveRegion: true,
+      child: Container(
+        alignment: Alignment.center,
+        child: AnimatedCounter(
+          count: state.count,
+          style: textStyle,
+        ),
       ),
     );
   }
 
-  Future<bool?> _showAddZikrDialog(BuildContext context, WidgetRef ref, SettingsModel settings) async {
-    final nameController = TextEditingController();
-    final transliterationController = TextEditingController();
-    final meaningController = TextEditingController();
-    final formKey = GlobalKey<FormState>();
+  Widget _buildCountButton(ZikrModel? zikr, SettingsModel settings) {
+    final size = settings.largeButtons ? 180.0 : 150.0;
 
-    return showDialog<bool>(
-      context: context,
-      builder: (context) => Semantics(
-        label: 'Add new zikr dialog',
-        child: AlertDialog(
-          title: const Text('Add Custom Zikr'),
-          content: SingleChildScrollView(
-            child: Form(
-              key: formKey,
+    return Semantics(
+      label: 'Tap to count',
+      hint: 'Double tap to increase the tasbih count',
+      button: true,
+      child: Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: Theme.of(context).colorScheme.primary,
+          boxShadow: [
+            BoxShadow(
+              color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
+              blurRadius: 20,
+              spreadRadius: 5,
+            ),
+          ],
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            customBorder: const CircleBorder(),
+            onTap: zikr != null ? () => _handleCounterTap(zikr) : null,
+            child: Container(
+              alignment: Alignment.center,
               child: Column(
-                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  TextFormField(
-                    controller: nameController,
-                    decoration: const InputDecoration(
-                      labelText: 'Arabic Text (optional)',
-                      hintText: 'e.g., دُخُولُ الْقُبُورِ',
-                    ),
-                    textDirection: TextDirection.rtl,
+                  Icon(
+                    Icons.fingerprint,
+                    size: 48,
+                    color: Colors.white,
                   ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: transliterationController,
-                    decoration: const InputDecoration(
-                      labelText: 'Transliteration *',
-                      hintText: 'e.g., Ya Rahman',
-                    ),
-                    validator: (v) => v?.isEmpty == true ? 'Required' : null,
-                  ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: meaningController,
-                    decoration: const InputDecoration(
-                      labelText: 'Meaning (optional)',
-                      hintText: 'e.g., O Most Merciful',
+                  const SizedBox(height: 8),
+                  Text(
+                    'TAP TO COUNT',
+                    style: TextStyle(
+                      fontSize: settings.extraLargeText ? 18 : 14,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
                     ),
                   ),
                 ],
               ),
             ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                if (formKey.currentState?.validate() == true) {
-                  final zikr = ZikrModel(
-                    id: DateTime.now().millisecondsSinceEpoch.toString(),
-                    name: nameController.text.isNotEmpty
-                        ? nameController.text
-                        : transliterationController.text,
-                    transliteration: transliterationController.text,
-                    meaning: meaningController.text,
-                    isDefault: false,
-                    sortOrder: 1000,
-                  );
-
-                  ref.read(zikrsProvider.notifier).addZikr(zikr);
-                  Navigator.pop(context, true);
-                }
-              },
-              child: const Text('Add'),
-            ),
-          ],
         ),
       ),
     );
   }
 
-  Future<String?> _showZikrOptionsDialog(BuildContext context, ZikrModel zikr) async {
-    return showDialog<String>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('${zikr.displayName} Options'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.edit),
-              title: const Text('Edit'),
-              onTap: () => Navigator.pop(context, 'edit'),
+  Widget _buildControlButtons(CounterState state, SettingsModel settings) {
+    return Row(
+      children: [
+        Expanded(
+          child: Semantics(
+            label: 'Reset counter',
+            hint: 'Double tap to reset the counter to zero',
+            button: true,
+            child: AccessibleButton(
+              label: 'Reset',
+              icon: const Icon(Icons.refresh),
+              onTap: state.count > 0 ? _handleReset : null,
+              enabled: state.count > 0,
+              outlined: true,
             ),
-            ListTile(
-              leading: const Icon(Icons.delete),
-              title: const Text('Delete'),
-              onTap: () => Navigator.pop(context, 'delete'),
-            ),
-          ],
+          ),
         ),
-      ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Semantics(
+            label: 'Undo last reset',
+            hint: state.previousCount != null ? 'Double tap to restore previous count' : 'No previous count available',
+            button: true,
+            enabled: state.previousCount != null,
+            child: AccessibleButton(
+              label: 'Undo Reset',
+              icon: const Icon(Icons.undo),
+              onTap: state.previousCount != null ? _handleUndoReset : null,
+              enabled: state.previousCount != null,
+              outlined: true,
+            ),
+          ),
+        ),
+      ],
     );
   }
 
-  Future<void> _showEditZikrDialog(BuildContext context, WidgetRef ref, ZikrModel zikr, SettingsModel settings) async {
-    final nameController = TextEditingController(text: zikr.name != zikr.transliteration ? zikr.name : '');
-    final transliterationController = TextEditingController(text: zikr.transliteration);
-    final meaningController = TextEditingController(text: zikr.meaning);
-
-    await showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Edit Zikr'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Arabic Text (optional)',
-                ),
-                textDirection: TextDirection.rtl,
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: transliterationController,
-                decoration: const InputDecoration(
-                  labelText: 'Transliteration',
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: meaningController,
-                decoration: const InputDecoration(
-                  labelText: 'Meaning (optional)',
-                ),
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              final updated = zikr.copyWith(
-                name: nameController.text.isNotEmpty
-                    ? nameController.text
-                    : transliterationController.text,
-                transliteration: transliterationController.text,
-                meaning: meaningController.text,
-              );
-
-              ref.read(zikrsProvider.notifier).updateZikr(updated);
-              Navigator.pop(context);
-            },
-            child: const Text('Save'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<bool?> _showDeleteConfirmDialog(BuildContext context, ZikrModel zikr) async {
-    return showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Zikr?'),
-        content: Text('Are you sure you want to delete "${zikr.displayName}"?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('No'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Theme.of(context).colorScheme.error,
-            ),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
-    );
+  @override
+  void dispose() {
+    flutterTts.stop();
+    super.dispose();
   }
 }
