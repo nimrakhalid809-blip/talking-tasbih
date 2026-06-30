@@ -449,7 +449,7 @@ class AnimatedCounter extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return TweenAnimationBuilder<int>(
-      tween: IntTween(begin: count - 1, end: count),
+      tween: IntTween(begin: count > 0 ? count - 1 : 0, end: count),
       duration: duration,
       builder: (context, value, child) {
         return Text(
