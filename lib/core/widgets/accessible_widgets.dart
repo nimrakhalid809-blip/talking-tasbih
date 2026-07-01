@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../models/settings_model.dart';
+import 'package:flutter/services.dart';
 
 class AccessibleButton extends StatelessWidget {
   final String label;
@@ -426,7 +426,7 @@ class AccessibleDropdownField<T extends Enum> extends StatelessWidget {
   }
 }
 
-class ScreenReaderAnnouncer extends WidgetLocalizations {
+class ScreenReaderAnnouncer {
   const ScreenReaderAnnouncer();
 
   static void announce(BuildContext context, String message) {
@@ -449,7 +449,7 @@ class AnimatedCounter extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return TweenAnimationBuilder<int>(
-      tween: IntTween(begin: count - 1, end: count),
+      tween: IntTween(begin: count > 0 ? count - 1 : 0, end: count),
       duration: duration,
       builder: (context, value, child) {
         return Text(

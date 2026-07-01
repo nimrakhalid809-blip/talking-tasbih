@@ -23,7 +23,7 @@ dependencies:
   cupertino_icons: ^1.0.6
 
   # Services
-  flutter_tts: ^3.8.5
+  flutter_tts: ^4.2.5
   vibration: ^1.8.4
   geolocator: ^11.0.0
   flutter_compass: ^0.8.0

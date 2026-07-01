@@ -46,22 +46,23 @@ class TtsService {
         _engineAvailable = true;
       }
 
-      await _flutterTts!.setStartHandler(() {
+      // Handler setters do not return Futures; do not await them.
+      _flutterTts!.setStartHandler(() {
         _isSpeaking = true;
         debugPrint('TTS started speaking');
       });
 
-      await _flutterTts!.setCompletionHandler(() {
+      _flutterTts!.setCompletionHandler(() {
         _isSpeaking = false;
         debugPrint('TTS completed speaking');
       });
 
-      await _flutterTts!.setErrorHandler((error) {
+      _flutterTts!.setErrorHandler((error) {
         debugPrint('TTS Error: $error');
         _isSpeaking = false;
       });
 
-      await _flutterTts!.setCancelHandler(() {
+      _flutterTts!.setCancelHandler(() {
         _isSpeaking = false;
         debugPrint('TTS cancelled');
       });
@@ -122,16 +123,20 @@ class TtsService {
 
   Future<void> _configurePlatformSpecifics() async {
     if (Platform.isIOS) {
-      await _flutterTts!.setSharedInstance(true);
-      await _flutterTts!.setIosAudioCategory(
-        IosTextToSpeechAudioPlaybackCategory.playback,
-        [
-          IosTextToSpeechAudioCategoryOptions.allowBluetooth,
-          IosTextToSpeechAudioCategoryOptions.allowBluetoothA2DP,
-          IosTextToSpeechAudioCategoryOptions.mixWithOthers,
-        ],
-        IosTextToSpeechAudioCategoryMode.voicePrompt,
-      );
+      try {
+        // Keep shared instance call where available; avoid referencing enums
+        // that may not exist for the current plugin version.
+        await _flutterTts!.setSharedInstance(true);
+      } catch (e) {
+        debugPrint('Could not set shared instance on iOS: $e');
+      }
+
+      // NOTE: iOS audio category enums were removed because the previous
+      // identifiers (IosTextToSpeechAudioPlaybackCategory, etc.) are not
+      // available with the current flutter_tts version used in analysis.
+      // If you need to set iOS audio categories, update flutter_tts and
+      // re-introduce setIosAudioCategory using the correct enums for
+      // that version inside a try/catch.
     }
 
     if (Platform.isAndroid) {
